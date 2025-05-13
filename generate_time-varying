@@ -8,3 +8,97 @@
 # Author       : Grace M. Power
 # Collaborators: Marc Vaudel and Stefan Johansson, University of Bergen
 # --------------------------------------------------------------------------------------
+
+# Height
+
+# File paths
+mfr_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/mfr.gz"
+parent_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/parent.gz"
+psam_file <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2024.12.03/moba_genotypes_2024.12.03_common.psam"
+output_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/height.txt"
+
+# Load data
+con <- gzfile(mfr_file, "rt"); mfr <- read.delim(con, stringsAsFactors = FALSE); close(con)
+con <- gzfile(parent_file, "rt"); parent <- read.delim(con, stringsAsFactors = FALSE); close(con)
+psam <- read.table(psam_file, header = TRUE, stringsAsFactors = FALSE, comment.char = ""); colnames(psam)[1] <- "FID"
+
+# Mother height
+mother_rows <- list()
+for (i in 1:nrow(mfr)) {
+  id <- mfr$mother_sentrix_id[i]
+  ht <- mfr$mother_height[i]
+  yob <- mfr$mother_birth_year[i]
+  child_yob <- mfr$birth_year[i]
+  if (!is.na(id) && !is.na(ht) && !is.na(yob) && !is.na(child_yob)) {
+    age <- child_yob - yob
+    mother_rows[[length(mother_rows) + 1]] <- c(IID = id, age = age, height = ht)
+  }
+}
+
+# Father height
+father_rows <- list()
+for (i in 1:nrow(parent)) {
+  id <- parent$father_sentrix_id[i]
+  ht <- parent$father_height_15w[i]
+  age <- parent$age_answering_q_45f[i]
+  if (!is.na(id) && !is.na(ht) && !is.na(age)) {
+    father_rows[[length(father_rows) + 1]] <- c(IID = id, age = age, height = ht)
+  }
+}
+
+# Combine and save
+height_data <- as.data.frame(do.call(rbind, c(mother_rows, father_rows)), stringsAsFactors = FALSE)
+height_data$age <- as.numeric(height_data$age); height_data$height <- as.numeric(height_data$height)
+height_data <- merge(psam[, c("FID", "IID")], height_data, by = "IID")
+height_data <- height_data[, c("FID", "IID", "age", "height")]
+write.table(height_data, file = output_file, sep = "\t", row.names = FALSE, quote = FALSE)
+
+# --------------------------------------------------------------------------------------
+
+# BMI
+
+# File paths
+mfr_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/mfr.gz"
+parent_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/parent.gz"
+psam_file <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2024.12.03/moba_genotypes_2024.12.03_common.psam"
+output_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/bmi.txt"
+
+# Load data
+con <- gzfile(mfr_file, "rt"); mfr <- read.delim(con, stringsAsFactors = FALSE); close(con)
+con <- gzfile(parent_file, "rt"); parent <- read.delim(con, stringsAsFactors = FALSE); close(con)
+psam <- read.table(psam_file, header = TRUE, stringsAsFactors = FALSE, comment.char = ""); colnames(psam)[1] <- "FID"
+
+# Mother BMI
+mother_rows <- list()
+for (i in 1:nrow(mfr)) {
+  id <- mfr$mother_sentrix_id[i]
+  wt <- mfr$mother_weight_before[i]
+  ht <- mfr$mother_height[i]
+  yob <- mfr$mother_birth_year[i]
+  child_yob <- mfr$birth_year[i]
+  if (!is.na(id) && !is.na(wt) && !is.na(ht) && !is.na(yob) && !is.na(child_yob)) {
+    bmi <- wt / ((ht / 100)^2)
+    age <- child_yob - yob
+    mother_rows[[length(mother_rows) + 1]] <- c(IID = id, age = age, bmi = bmi)
+  }
+}
+
+# Father BMI
+father_rows <- list()
+for (i in 1:nrow(parent)) {
+  id <- parent$father_sentrix_id[i]
+  wt <- parent$father_weight_15w[i]
+  ht <- parent$father_height_15w[i]
+  age <- parent$age_answering_q_45f[i]
+  if (!is.na(id) && !is.na(wt) && !is.na(ht) && !is.na(age)) {
+    bmi <- wt / ((ht / 100)^2)
+    father_rows[[length(father_rows) + 1]] <- c(IID = id, age = age, bmi = bmi)
+  }
+}
+
+# Combine and save
+bmi_data <- as.data.frame(do.call(rbind, c(mother_rows, father_rows)), stringsAsFactors = FALSE)
+bmi_data$age <- as.numeric(bmi_data$age); bmi_data$bmi <- as.numeric(bmi_data$bmi)
+bmi_data <- merge(psam[, c("FID", "IID")], bmi_data, by = "IID")
+bmi_data <- bmi_data[, c("FID", "IID", "age", "bmi")]
+write.table(bmi_data, file = output_file, sep = "\t", row.names = FALSE, quote = FALSE)
