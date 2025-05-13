@@ -39,8 +39,8 @@ merged_data <- merge(psam[, c("FID", "IID")], mother_data, by = "IID")
 # Create height file
 # ---------------------------
 
-height_data <- merged_data[, c("FID", "IID", "age_prepreg", "height_prepreg")]
-colnames(height_data) <- c("FID", "IID", "age", "height")
+height_data <- merged_data[, c("FID", "IID", "height_prepreg", "age_prepreg")]
+colnames(height_data) <- c("FID", "IID", "value", "age")
 
 write.table(height_data, file = output_height, sep = "\t", row.names = FALSE, quote = FALSE)
 
@@ -48,8 +48,9 @@ write.table(height_data, file = output_height, sep = "\t", row.names = FALSE, qu
 # Create BMI file
 # ---------------------------
 
-bmi_data <- merged_data[, c("FID", "IID", "age_prepreg", "bmi_prepreg")]
-colnames(bmi_data) <- c("FID", "IID", "age", "bmi")
+bmi_data <- merged_data[, c("FID", "IID", "bmi_prepreg", "age_prepreg")]
+colnames(bmi_data) <- c("FID", "IID", "value", "age")
 
 write.table(bmi_data, file = output_bmi, sep = "\t", row.names = FALSE, quote = FALSE)
+
 
