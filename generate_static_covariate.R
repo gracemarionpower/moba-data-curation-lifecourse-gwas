@@ -51,14 +51,11 @@ for (i in 1:nrow(mfr)) {
 static_covariate <- as.data.frame(do.call(rbind, rows), stringsAsFactors = FALSE)
 
 # Convert types
-static_covariate$sex <- as.integer(static_covariate$sex)
-static_covariate$yob <- as.integer(static_covariate$yob)
+static_covariate$sex <- as.numeric(static_covariate$sex)
+static_covariate$yob <- as.numeric(static_covariate$yob)
 
 # Merge FID using psam file
 static_covariate <- merge(psam[, c("FID", "IID")], static_covariate, by = "IID")
-
-# Order by FID and write output
-static_covariate <- static_covariate[order(static_covariate$FID), ]
 
 # Reorder columns
 static_covariate <- static_covariate[, c("FID", "IID", "sex", "yob")]
