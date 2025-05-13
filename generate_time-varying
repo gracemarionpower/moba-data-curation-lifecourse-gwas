@@ -1,1 +1,10 @@
+# In bash, run: R
 
+# --------------------------------------------------------------------------------------
+# Script Name: generate_time-varying.R
+# Purpose      : To generate bmi.txt and height.txt files for the Lifecourse GWAS pipeline
+# Date created : 13-05-2025
+# Last updated : 13-05-2025
+# Author       : Grace M. Power
+# Collaborators: Marc Vaudel and Stefan Johansson, University of Bergen
+# --------------------------------------------------------------------------------------
