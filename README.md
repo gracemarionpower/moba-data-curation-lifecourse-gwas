@@ -1,1 +1,10 @@
 # data-curation-lifecourse-gwas
+
+This repository documents the data curation steps carried out on the HUNT Cloud to prepare MoBa BMI and height data for the Lifecourse GWAS processing pipeline. For requirements, see: https://github.com/MRCIEU/Lifecourse-GWAS/wiki.
+
+The pipeline performs the following tasks:
+
+1. Static covariate file: Generates a file containing FID, IID, sex, yob for children, mothers, and fathers. Each individual is treated independently.
+2. Time-varying BMI and height files: Produces two separate long-format files (one for BMI and one for height) with columns: FID, IID, value, age. Individuals may have multiple repeated measurements, each recorded independently and will be treated in the pipeline as seperate individuals.
+
+Collaborators include: Marc Vaudel and Stefan Johansson, University of Bergen
