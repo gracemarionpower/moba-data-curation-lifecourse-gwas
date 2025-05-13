@@ -1,7 +1,7 @@
 
 # --------------------------------------------------------------------------------------
-# Script Name: data_checking.R
-# Purpose      : To check parental data prior to curating time-varying datasets
+# Script Name: checking_cleaning_data.R
+# Purpose      : To identify the best data sources and clean parental data before curating time-varying datasets
 # Date created : 13-05-2025
 # Last updated : 13-05-2025
 # Author       : Grace M. Power
