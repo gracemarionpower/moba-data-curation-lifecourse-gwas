@@ -83,33 +83,75 @@ summarize_var <- function(x) {
 height_self_summary <- summarize_var(mother_data$mother_height_self)
 height_summary <- summarize_var(mother_data$mother_height)
 
-summary_table <- rbind(
+summary_table_heights <- rbind(
   cbind(Variable = "mother_height_self", height_self_summary),
   cbind(Variable = "mother_height", height_summary)
 )
 
-print(summary_table, row.names = FALSE)
+print(summary_table_heights, row.names = FALSE)
 
-# Create final cleaned dataset
+# ---------------------------
+# Create full cleaned dataset with BMI and age
+# ---------------------------
 
-final_mother_data <- mother_data[, c("IID", "mother_weight_beginning_self", "mother_height")]
-
-# Rename columns to final names
-colnames(final_mother_data) <- c("IID", "weight_prepreg", "height_prepreg")
-
-# Create final cleaned dataset
-final_mother_data <- mother_data[, c("IID", "mother_weight_beginning_self", "mother_height")]
-colnames(final_mother_data) <- c("IID", "weight_prepreg", "height_prepreg")
-
-# Calculate BMI
+final_mother_data <- mother_data[, c("IID", "mother_weight_beginning_self", "mother_height", "age_minus_15w")]
+colnames(final_mother_data) <- c("IID", "weight_prepreg", "height_prepreg", "age_prepreg")
 final_mother_data$bmi_prepreg <- final_mother_data$weight_prepreg / (final_mother_data$height_prepreg^2)
 
-# Preview
-head(final_mother_data)
+# Reorder to desired column order
+final_mother_data <- final_mother_data[, c("IID", "weight_prepreg", "height_prepreg", "bmi_prepreg", "age_prepreg")]
 
-# Save cleaned file
-write.table(final_mother_data,
-            file = "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_cleaned_anthro_prepreg.txt",
-            sep = "\t", row.names = FALSE, quote = FALSE)
+# ---------------------------
+# Split into complete-case and partial-case datasets
+# ---------------------------
 
+# 1. Complete case: all variables including IID are non-missing
+mother_data_complete <- final_mother_data[complete.cases(final_mother_data), ]
+
+# 2. Partial case: allow NA except for IID
+mother_data_partial <- final_mother_data[!is.na(final_mother_data$IID), ]
+mother_data_partial[is.na(mother_data_partial)] <- "."
+
+# ---------------------------
+# Summary for complete-case dataset
+# ---------------------------
+
+summarize_dataframe <- function(df, vars = NULL) {
+  if (is.null(vars)) vars <- names(df)
+  summaries <- lapply(vars, function(var) {
+    x <- as.numeric(df[[var]])
+    x_clean <- x[!is.na(x)]
+    data.frame(
+      Variable = var,
+      Sample_Size = length(x_clean),
+      Missing = sum(is.na(df[[var]])),
+      Mean = round(mean(x_clean), 2),
+      Median = round(median(x_clean), 2),
+      SD = round(sd(x_clean), 2),
+      Min = round(min(x_clean), 2),
+      Max = round(max(x_clean), 2)
+    )
+  })
+  do.call(rbind, summaries)
+}
+
+summary_table_complete <- summarize_dataframe(
+  mother_data_complete,
+  vars = c("weight_prepreg", "height_prepreg", "bmi_prepreg", "age_prepreg")
+)
+
+cat("\nSummary of complete-case dataset:\n")
+print(summary_table_complete, row.names = FALSE)
+
+# ---------------------------
+# Save both datasets
+# ---------------------------
+
+write.table(mother_data_complete,
+            file = "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_prepreg_complete.txt",
+            sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+
+write.table(mother_data_partial,
+            file = "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_prepreg_partial.txt",
+            sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 
