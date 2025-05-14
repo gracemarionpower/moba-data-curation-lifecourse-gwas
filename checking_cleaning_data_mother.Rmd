@@ -1,0 +1,106 @@
+---
+title: "Checking and Cleaning Maternal Data"
+author: "Grace M. Power"
+date: "2025-05-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+parent_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/parent.gz"
+output_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_data_check.txt"
+
+con <- gzfile(parent_file, "rt")
+parent <- read.delim(con, stringsAsFactors = FALSE)
+close(con)
+
+mother_data <- parent[, c(
+  "mother_sentrix_id",
+  "mother_height_self",
+  "mother_weight_beginning_self",
+  "mother_height",
+  "mother_age_15w"
+)]
+colnames(mother_data)[1] <- "IID"
+
+mother_data$mother_height_self <- as.numeric(gsub(",", ".", mother_data$mother_height_self))
+mother_data$mother_height <- as.numeric(gsub(",", ".", mother_data$mother_height))
+mother_data$mother_weight_beginning_self <- as.numeric(gsub(",", ".", mother_data$mother_weight_beginning_self))
+mother_data$mother_age_15w <- as.numeric(gsub(",", ".", mother_data$mother_age_15w))
+
+# Implausible height values to NA
+mother_data$mother_height_self[
+  mother_data$mother_height_self < 30 | mother_data$mother_height_self > 500
+] <- NA
+
+mother_data$mother_height[
+  mother_data$mother_height < 30 | mother_data$mother_height > 500
+] <- NA
+
+# Convert cm to meters
+mother_data$mother_height_self <- mother_data$mother_height_self / 100
+mother_data$mother_height <- mother_data$mother_height / 100
+
+# Adjust age
+mother_data$age_minus_15w <- mother_data$mother_age_15w - (15 / 52.1775)
+
+summarize_var <- function(x) {
+  x_clean <- x[!is.na(x)]
+  data.frame(
+    Sample_Size = length(x_clean),
+    Missing = sum(is.na(x)),
+    Mean = round(mean(x_clean), 2),
+    Median = round(median(x_clean), 2),
+    SD = round(sd(x_clean), 2),
+    Min = round(min(x_clean), 2),
+    Max = round(max(x_clean), 2)
+  )
+}
+
+height_self_summary <- summarize_var(mother_data$mother_height_self)
+height_summary <- summarize_var(mother_data$mother_height)
+
+summary_table_heights <- rbind(
+  cbind(Variable = "mother_height_self", height_self_summary),
+  cbind(Variable = "mother_height", height_summary)
+)
+
+knitr::kable(summary_table_heights, caption = "Summary of Maternal Heights")
+
+final_mother_data <- mother_data[, c("IID", "mother_weight_beginning_self", "mother_height", "age_minus_15w")]
+colnames(final_mother_data) <- c("IID", "weight_prepreg", "height_prepreg", "age_prepreg")
+final_mother_data$bmi_prepreg <- final_mother_data$weight_prepreg / (final_mother_data$height_prepreg^2)
+
+# Reorder columns
+final_mother_data <- final_mother_data[, c("IID", "weight_prepreg", "height_prepreg", "bmi_prepreg", "age_prepreg")]
+
+mother_data_complete <- final_mother_data[complete.cases(final_mother_data), ]
+mother_data_partial <- final_mother_data[!is.na(final_mother_data$IID), ]
+mother_data_partial[is.na(mother_data_partial)] <- "."
+
+summarize_dataframe <- function(df, vars = NULL) {
+  if (is.null(vars)) vars <- names(df)
+  summaries <- lapply(vars, function(var) {
+    x <- as.numeric(df[[var]])
+    x_clean <- x[!is.na(x)]
+    data.frame(
+      Variable = var,
+      Sample_Size = length(x_clean),
+      Missing = sum(is.na(df[[var]])),
+      Mean = round(mean(x_clean), 2),
+      Median = round(median(x_clean), 2),
+      SD = round(sd(x_clean), 2),
+      Min = round(min(x_clean), 2),
+      Max = round(max(x_clean), 2)
+    )
+  })
+  do.call(rbind, summaries)
+}
+
+summary_table_complete <- summarize_dataframe(
+  mother_data_complete,
+  vars = c("weight_prepreg", "height_prepreg", "bmi_prepreg", "age_prepreg")
+)
+
+knitr::kable(summary_table_complete, caption = "Summary of Complete-Case Dataset")
