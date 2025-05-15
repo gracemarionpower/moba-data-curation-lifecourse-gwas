@@ -7,6 +7,8 @@
 # Collaborators: Marc Vaudel and Stefan Johansson, University of Bergen
 # --------------------------------------------------------------------------------------
 
+# This includes all child data including <18 years
+
 # ----------------------------- SETUP ----------------------------------
 
 child_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/child_anthropometrics_raw.gz"
@@ -14,7 +16,7 @@ con <- gzfile(child_file, "rt")
 child <- read.delim(con, stringsAsFactors = FALSE)
 close(con)
 
-verbose <- TRUE  # Toggle for output summaries
+verbose <- TRUE
 
 # ----------------------------- FUNCTIONS -------------------------------
 
@@ -26,7 +28,7 @@ clean_numeric <- function(x) {
 
 convert_weight <- function(w) {
   w_clean <- clean_numeric(w)
-  w_clean[!is.finite(w_clean) | w_clean < 2 | w_clean > 200] <- NA
+  w_clean[!is.finite(w_clean) | w_clean < 3 | w_clean > 150] <- NA
   return(w_clean)
 }
 
@@ -36,24 +38,27 @@ convert_height <- function(h) {
 
   if (!is.na(guess_unit) && guess_unit > 20) {
     h_clean <- h_clean / 100
-    if (verbose) cat("↪ Converted height from cm to meters\n")
+    if (verbose) cat("↪ Converted height from cm to metres\n")
   } else {
-    if (verbose) cat("↪ Height appears to be in meters\n")
+    if (verbose) cat("↪ Height appears to be in metres\n")
   }
 
-  h_clean[!is.finite(h_clean) | h_clean < 0.3 | h_clean > 2.2] <- NA
+  h_clean[!is.finite(h_clean) | h_clean < 0.45 | h_clean > 2.1] <- NA
   return(h_clean)
 }
 
 convert_age <- function(a) {
   a_clean <- clean_numeric(a)
-  # Remove anything below 0 or above 25 years
   a_clean[!is.finite(a_clean) | a_clean < 0 | a_clean > 25] <- NA
   return(a_clean)
 }
 
-summarize_var <- function(x, varname) {
+summarise_var <- function(x, varname) {
   x_clean <- x[!is.na(x)]
+  if (length(x_clean) == 0) {
+    cat(sprintf("Variable: %s — all values are missing\n", varname))
+    return(NULL)
+  }
   summary <- data.frame(
     Variable = varname,
     N = length(x_clean),
@@ -96,10 +101,17 @@ timepoints <- list(
   "19y" = list(weight = "weight_19", height = "height_19",    age = "age_answering_q_19")
 )
 
-# ----------------------------- CLEANING AND SUMMARIZING -------------------------------
+# ----------------------------- CLEANING LOOP -------------------------------
 
-child$IID <- rownames(child)
-final_df <- data.frame(IID = child$IID, sex = child$sex)
+# Rename child_sentrix_id to IID
+if ("child_sentrix_id" %in% colnames(child)) {
+  colnames(child)[colnames(child) == "child_sentrix_id"] <- "IID"
+} else {
+  stop("Variable 'child_sentrix_id' not found in the dataset.")
+}
+
+# Start output with IID and sex
+final_df <- data.frame(IID = child$IID, sex = child$sex, stringsAsFactors = FALSE)
 
 for (tp in names(timepoints)) {
   vars <- timepoints[[tp]]
@@ -110,8 +122,8 @@ for (tp in names(timepoints)) {
 
   if (verbose) {
     cat("\n--- Checking Timepoint:", tp, "---\n")
-    check_variable_units(w_raw, vars$weight, c(2, 200), "kg")
-    check_variable_units(h_raw, vars$height, c(0.3, 2.2), "meters")
+    check_variable_units(w_raw, vars$weight, c(3, 150), "kg")
+    check_variable_units(h_raw, vars$height, c(0.45, 2.1), "metres")
     if (!is.null(vars$age)) check_variable_units(a_raw, vars$age, c(0, 25), "years")
   }
 
@@ -122,11 +134,14 @@ for (tp in names(timepoints)) {
   bmi <- ifelse(!is.na(weight) & !is.na(height) & is.finite(weight) & is.finite(height),
                 weight / (height^2), NA)
 
+  # Remove extreme BMI values
+  bmi[bmi < 8 | bmi > 60] <- NA
+
   if (verbose) {
-    summarize_var(weight, paste0("weight_", tp))
-    summarize_var(height, paste0("height_", tp))
-    summarize_var(age, paste0("age_", tp))
-    summarize_var(bmi, paste0("bmi_", tp))
+    summarise_var(weight, paste0("weight_", tp))
+    summarise_var(height, paste0("height_", tp))
+    summarise_var(age, paste0("age_", tp))
+    summarise_var(bmi, paste0("bmi_", tp))
   }
 
   df_tp <- data.frame(weight, height, bmi, age)
@@ -140,14 +155,9 @@ for (tp in names(timepoints)) {
   final_df <- cbind(final_df, df_tp)
 }
 
-# ----------------------------- FINAL CLEAN-UP & EXPORT -------------------------------
+# ----------------------------- FINAL EXPORT -------------------------------
 
-# Replace any Inf, -Inf, NaN with NA
-final_df[!is.finite(as.matrix(final_df))] <- NA
-
-# Export with "." for NA
 output_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_anthro_all_timepoints_cleaned.txt"
 write.table(final_df, output_file, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 
-cat("\n Final cleaned dataset saved to:\n", output_file, "\n"
-
+cat("\n Final cleaned dataset saved to:\n", output_file, "\n")
