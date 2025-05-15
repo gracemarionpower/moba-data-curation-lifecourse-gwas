@@ -7,7 +7,7 @@
 # Collaborators: Marc Vaudel and Stefan Johansson, University of Bergen
 # --------------------------------------------------------------------------------------
 
-# NB: Maternal data during pregnancy is excluded due to confounding factors
+# NB: Maternal data during pregnancy is excluded as physiological changes during this period may introduce systematic differences
 
 # ----------------------------- SETUP ----------------------------------
 
@@ -38,7 +38,7 @@ summarize_var <- function(x) {
   )
 }
 
-summarize_dataframe <- function(df, vars = NULL) {
+summarise_dataframe <- function(df, vars = NULL) {
   if (is.null(vars)) vars <- names(df)
   do.call(rbind, lapply(vars, function(var) {
     x <- as.numeric(df[[var]])
@@ -67,8 +67,8 @@ prepreg_vars <- c("mother_weight_beginning_self", "mother_height", "mother_heigh
 # Postnatal timepoints 
 timepoints <- list(
   "3y" = list(weight = "mother_weight_3y", height = "mother_height_3y", age_offset = 3+0.75), # adding 9 months of pregnancy == 0.75
-  "5y" = list(weight = "mother_weight_5y", height = "mother_height_5y", age_offset = 5+0.75), adding 9 months of pregnancy == 0.75
-  "8y" = list(weight = "mother_weight_8y", height = "mother_height_8y", age_offset = 8+0.75) adding 9 months of pregnancy == 0.75
+  "5y" = list(weight = "mother_weight_5y", height = "mother_height_5y", age_offset = 5+0.75), # adding 9 months of pregnancy == 0.75
+  "8y" = list(weight = "mother_weight_8y", height = "mother_height_8y", age_offset = 8+0.75) # adding 9 months of pregnancy == 0.75
 )
 
 # Combine all variables needed
@@ -114,11 +114,17 @@ prepreg_complete <- prepreg[complete.cases(prepreg), ]
 prepreg_partial  <- prepreg[!is.na(prepreg$IID), ]
 prepreg_partial[is.na(prepreg_partial)] <- "."
 
+# Add sex and rename columns (except IID)
+prepreg_complete$sex <- 2
+prepreg_partial$sex <- 2
+colnames(prepreg_complete)[colnames(prepreg_complete) != "IID"] <- paste0("mum_", colnames(prepreg_complete)[colnames(prepreg_complete) != "IID"])
+colnames(prepreg_partial)[colnames(prepreg_partial) != "IID"] <- paste0("mum_", colnames(prepreg_partial)[colnames(prepreg_partial) != "IID"])
+
 write.table(prepreg_complete, "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_prepreg_complete.txt", sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 write.table(prepreg_partial, "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_prepreg_partial.txt", sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 
 cat("\nSummary of complete-case dataset (Prepregnancy):\n")
-print(summarize_dataframe(prepreg_complete, c("weight_prepreg", "height_prepreg", "bmi_prepreg", "age_prepreg")), row.names = FALSE)
+print(summarize_dataframe(prepreg_complete, c("mum_weight_prepreg", "mum_height_prepreg", "mum_bmi_prepreg", "mum_age_prepreg")), row.names = FALSE)
 
 # ----------------------------- POSTNATAL TIMEPOINT DATA -------------------------------
 
@@ -136,7 +142,14 @@ for (tp in names(timepoints)) {
     bmi = bmi,
     age = age
   )
-  colnames(temp) <- paste0(c("IID", "weight_", "height_", "bmi_", "age_"), tp)
+  colnames(temp) <- c("IID", 
+                      paste0("weight_", tp),
+                      paste0("height_", tp),
+                      paste0("bmi_", tp),
+                      paste0("age_", tp))
+
+  temp$sex <- 2
+  colnames(temp)[colnames(temp) != "IID"] <- paste0("mum_", colnames(temp)[colnames(temp) != "IID"])
 
   temp_complete <- temp[complete.cases(temp), ]
   temp_partial  <- temp[!is.na(temp[[1]]), ]
@@ -145,4 +158,3 @@ for (tp in names(timepoints)) {
   write.table(temp_complete, paste0("/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_", tp, "_complete.txt"), sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
   write.table(temp_partial,  paste0("/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_", tp, "_partial.txt"),  sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 }
-
