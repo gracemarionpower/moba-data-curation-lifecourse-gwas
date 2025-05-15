@@ -96,7 +96,6 @@ timepoints <- list(
   "8y"  = list(weight = "weight_8y",  height = "length_8y",    age = "age_8y"),
   "13y" = list(weight = "weight_13", height = "height_13",    age = "age_answering_q_13"),
   "14y" = list(weight = "weight_14c",height = "height_14c",   age = "age_answering_q_14c"),
-  "16m" = list(weight = "weight_16m",height = "length_16m",   age = "age_16m"),
   "18y" = list(weight = "weight_18", height = "height_18",    age = "age_answering_q_18"),
   "19y" = list(weight = "weight_19", height = "height_19",    age = "age_answering_q_19")
 )
@@ -160,4 +159,3 @@ for (tp in names(timepoints)) {
 output_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_anthro_all_timepoints_cleaned.txt"
 write.table(final_df, output_file, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 
-cat("\n Final cleaned dataset saved to:\n", output_file, "\n")
