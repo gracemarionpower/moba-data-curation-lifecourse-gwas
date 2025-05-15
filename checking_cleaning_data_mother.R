@@ -58,20 +58,20 @@ summarise_dataframe <- function(df, vars = NULL) {
 
 # ----------------------------- VARIABLE DEFINITIONS -------------------------------
 
-# Core identifiers (always needed)
 core_vars <- c("mother_sentrix_id", "mother_age_15w")
-
-# Prepregnancy-specific variables
 prepreg_vars <- c("mother_weight_beginning_self", "mother_height", "mother_height_self")
 
-# Postnatal timepoints 
+# NOTE: `mother_weight_14m` and `mother_height_14m` are treated as 14 YEARS (not months)
+# `mother_weight_18m` is assumed to occur at 1.5 years (18 months) and we use height from 3y timepoint
+
 timepoints <- list(
-  "3y" = list(weight = "mother_weight_3y", height = "mother_height_3y", age_offset = 3+0.75), # adding 9 months of pregnancy == 0.75
-  "5y" = list(weight = "mother_weight_5y", height = "mother_height_5y", age_offset = 5+0.75), # adding 9 months of pregnancy == 0.75
-  "8y" = list(weight = "mother_weight_8y", height = "mother_height_8y", age_offset = 8+0.75) # adding 9 months of pregnancy == 0.75
+  "3y"   = list(weight = "mother_weight_3y", height = "mother_height_3y", age_offset = 3 + 0.75),
+  "5y"   = list(weight = "mother_weight_5y", height = "mother_height_5y", age_offset = 5 + 0.75),
+  "8y"   = list(weight = "mother_weight_8y", height = "mother_height_8y", age_offset = 8 + 0.75),
+  "14y" = list(weight = "mother_weight_14m", height = "mother_height_14m", age_offset = 14 + 0.75),  # Note: "14m" interpreted as 14 years
+  "1.5y" = list(weight = "mother_weight_18m", height = "mother_height_3y", age_offset = 1.5 + 0.75)      # 1.5 years (18 months) with 3y height
 )
 
-# Combine all variables needed
 all_vars <- unique(c(core_vars, prepreg_vars, unlist(lapply(timepoints, function(x) c(x$weight, x$height)))))
 mother_data <- parent[, all_vars]
 colnames(mother_data)[colnames(mother_data) == "mother_sentrix_id"] <- "IID"
@@ -79,7 +79,7 @@ colnames(mother_data)[colnames(mother_data) == "mother_sentrix_id"] <- "IID"
 # ----------------------------- CLEAN PREPREG AGE DATA -------------------------------
 
 mother_data$mother_age_15w <- clean_numeric(mother_data$mother_age_15w)
-mother_data$age_prepreg <- mother_data$mother_age_15w - (15 / 52.1775)  # adjust for 15 weeks
+mother_data$age_prepreg <- mother_data$mother_age_15w - (15 / 52.1775)
 
 # ----------------------------- CLEAN & SUMMARISE HEIGHT VARIANTS -------------------------------
 
@@ -109,12 +109,10 @@ prepreg <- data.frame(
 prepreg$bmi_prepreg <- prepreg$weight_prepreg / (prepreg$height_prepreg^2)
 prepreg <- prepreg[, c("IID", "weight_prepreg", "height_prepreg", "bmi_prepreg", "age_prepreg")]
 
-# Save files
 prepreg_complete <- prepreg[complete.cases(prepreg), ]
 prepreg_partial  <- prepreg[!is.na(prepreg$IID), ]
 prepreg_partial[is.na(prepreg_partial)] <- "."
 
-# Add sex and rename columns (except IID)
 prepreg_complete$sex <- 2
 prepreg_partial$sex <- 2
 colnames(prepreg_complete)[colnames(prepreg_complete) != "IID"] <- paste0("mum_", colnames(prepreg_complete)[colnames(prepreg_complete) != "IID"])
