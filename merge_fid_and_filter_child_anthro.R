@@ -9,10 +9,10 @@
 # ----------------------------- SETUP ----------------------------------
 
 # Input files
-cleaned_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_anthro_all_timepoints_cleaned.txt"
+cleaned_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_anthro_cleaned_new.txt"
 psam_file    <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2024.12.03/moba_genotypes_2024.12.03_common.psam"
 # Output
-output_file  <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_anthro_filtered_fid.txt"
+output_file  <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_8_anthro_filtered_fid.txt"
 
 # ----------------------------- READ FILES -----------------------------
 
@@ -44,4 +44,3 @@ child <- child[, c("FID", "IID", other_cols)]
 
 write.table(child, file = output_file, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 
-cat("\n Cleaned dataset with FID merged and 18y/19y removed saved to:\n", output_file, "\n")
