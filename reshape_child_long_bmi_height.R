@@ -1,17 +1,23 @@
 # --------------------------------------------------------------------------------------
 # Script Name : reshape_child_long_bmi_height.R
-# Purpose     : Create BMI and height long-format files (base R only)
-# Date created : 13-05-2025
-# Last updated : 13-05-2025
+# Purpose     : Create long-format BMI and height files
+# Date created : 16-05-2025
+# Last updated : 16-05-2025
 # Author       : Grace M. Power
 # Collaborators: Marc Vaudel and Stefan Johansson, University of Bergen
 # --------------------------------------------------------------------------------------
 
 # ----------------------------- SETUP ----------------------------------
 
-input_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_anthro_filtered_fid_no13_14.txt"
-output_bmi <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_bmi_long.txt"
-output_height <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_height_long.txt"
+input_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_8_anthro_filtered_fid.txt"
+
+# Final output
+output_bmi_final <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/bmi.txt"               # complete case only
+output_height_final <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/height.txt"         # allows missing
+
+# Full long-format outputs (all columns)
+output_bmi_full <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/bmi_8_long.txt"
+output_height_full <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/height_8_long.txt"
 
 # ----------------------------- READ DATA -----------------------------
 
@@ -20,49 +26,62 @@ child <- read.delim(input_file, stringsAsFactors = FALSE)
 # ----------------------------- LONG FORMAT: BMI -----------------------------
 
 bmi_cols <- grep("^bmi_", names(child), value = TRUE)
-
-bmi_long <- NULL
-for (col in bmi_cols) {
+bmi_long <- do.call(rbind, lapply(bmi_cols, function(col) {
   tp <- sub("bmi_", "", col)
   age_col <- paste0("age_", tp)
-  
-  df <- data.frame(
+  data.frame(
     FID = child$FID,
     IID = child$IID,
     sex = child$sex,
     timepoint = tp,
-    age = if (age_col %in% colnames(child)) child[[age_col]] else NA,
+    age = if (age_col %in% names(child)) child[[age_col]] else NA,
     bmi = child[[col]],
     stringsAsFactors = FALSE
   )
-  
-  bmi_long <- rbind(bmi_long, df)
-}
+}))
 
 # ----------------------------- LONG FORMAT: HEIGHT -----------------------------
 
 height_cols <- grep("^height_", names(child), value = TRUE)
-
-height_long <- NULL
-for (col in height_cols) {
+height_long <- do.call(rbind, lapply(height_cols, function(col) {
   tp <- sub("height_", "", col)
   age_col <- paste0("age_", tp)
-
-  df <- data.frame(
+  data.frame(
     FID = child$FID,
     IID = child$IID,
     sex = child$sex,
     timepoint = tp,
-    age = if (age_col %in% colnames(child)) child[[age_col]] else NA,
+    age = if (age_col %in% names(child)) child[[age_col]] else NA,
     height = child[[col]],
     stringsAsFactors = FALSE
   )
-  
-  height_long <- rbind(height_long, df)
-}
+}))
+
+# ----------------------------- FINAL VERSIONS (narrowed columns) -----------------------------
+
+# BMI: narrow to key columns
+bmi_narrow <- bmi_long[, c("FID", "IID", "age", "bmi")]
+colnames(bmi_narrow)[colnames(bmi_narrow) == "bmi"] <- "value"
+
+# HEIGHT: narrow to key columns
+height_narrow <- height_long[, c("FID", "IID", "age", "height")]
+colnames(height_narrow)[colnames(height_narrow) == "height"] <- "value"
+
+# ----------------------------- HANDLE MISSINGNESS STRATEGY -----------------------------
+
+# BMI: keep only complete cases
+bmi_final <- bmi_narrow[!is.na(bmi_narrow$value) & bmi_narrow$value != ".", ]
+
+# Height: keep all rows (partial/missing OK)
+height_final <- height_narrow
 
 # ----------------------------- EXPORT -----------------------------
 
-write.table(bmi_long, output_bmi, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
-write.table(height_long, output_height, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+# Final narrow outputs
+write.table(bmi_final, output_bmi_final, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+write.table(height_final, output_height_final, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+
+# Full long-format outputs with all metadata columns
+write.table(bmi_long, output_bmi_full, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+write.table(height_long, output_height_full, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 
