@@ -11,7 +11,7 @@
 
 # ----------------------------- SETUP ----------------------------------
 
-child_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/child_anthropometrics.gz"
+child_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/child_anthropometrics_raw.gz"
 con <- gzfile(child_file, "rt")
 child <- read.delim(con, stringsAsFactors = FALSE)
 close(con)
