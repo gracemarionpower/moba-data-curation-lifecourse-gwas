@@ -76,6 +76,11 @@ bmi_final <- bmi_narrow[!is.na(bmi_narrow$value) & bmi_narrow$value != ".", ]
 # Height: keep only complete cases
 height_final <- height_narrow[!is.na(height_narrow$value) & height_narrow$value != ".", ]
 
+# ----------------------------- ORDERING ----------------------------------
+
+# Order by FID, IID, and age
+bmi_final <- bmi_final[order(bmi_final$FID, bmi_final$IID, bmi_final$age), ]
+height_final <- height_final[order(height_final$FID, height_final$IID, height_final$age), ]
 
 # ----------------------------- EXPORT -----------------------------
 
