@@ -72,8 +72,9 @@ colnames(height_narrow)[colnames(height_narrow) == "height"] <- "value"
 # BMI: keep only complete cases
 bmi_final <- bmi_narrow[!is.na(bmi_narrow$value) & bmi_narrow$value != ".", ]
 
-# Height: keep all rows (partial/missing OK)
-height_final <- height_narrow
+# Height: keep only complete cases
+height_final <- height_narrow[!is.na(height_narrow$value) & height_narrow$value != ".", ]
+
 
 # ----------------------------- EXPORT -----------------------------
 
