@@ -70,13 +70,16 @@ colnames(height_narrow)[colnames(height_narrow) == "height"] <- "value"
 
 # ----------------------------- HANDLE MISSINGNESS STRATEGY -----------------------------
 
-# Ensure 'value' columns are numeric
+# Ensure numeric
 bmi_narrow$value <- as.numeric(bmi_narrow$value)
 height_narrow$value <- as.numeric(height_narrow$value)
+bmi_narrow$age <- as.numeric(bmi_narrow$age)
+height_narrow$age <- as.numeric(height_narrow$age)
 
-# Filter to keep rows with non-missing value *and* age
+# Filter out rows with missing value or age
 bmi_final <- bmi_narrow[!is.na(bmi_narrow$value) & !is.na(bmi_narrow$age), ]
 height_final <- height_narrow[!is.na(height_narrow$value) & !is.na(height_narrow$age), ]
+
 
 # ----------------------------- ORDERING ----------------------------------
 
