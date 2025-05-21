@@ -46,13 +46,14 @@ height_cols <- grep("^height_", names(child), value = TRUE)
 height_long <- do.call(rbind, lapply(height_cols, function(col) {
   tp <- sub("height_", "", col)
   age_col <- paste0("age_", tp)
+  height_values <- as.numeric(child[[col]]) * 100  # convert to cm
   data.frame(
     FID = child$FID,
     IID = child$IID,
     sex = child$sex,
     timepoint = tp,
     age = if (age_col %in% names(child)) child[[age_col]] else NA,
-    height = child[[col]],
+    height = height_values,
     stringsAsFactors = FALSE
   )
 }))
