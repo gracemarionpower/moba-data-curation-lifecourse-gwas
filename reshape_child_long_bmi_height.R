@@ -70,17 +70,18 @@ colnames(height_narrow)[colnames(height_narrow) == "height"] <- "value"
 
 # ----------------------------- HANDLE MISSINGNESS STRATEGY -----------------------------
 
-# BMI: keep only complete cases
-bmi_final <- bmi_narrow[!is.na(bmi_narrow$value) & bmi_narrow$value != ".", ]
+# Ensure 'value' columns are numeric
+bmi_narrow$value <- as.numeric(bmi_narrow$value)
+height_narrow$value <- as.numeric(height_narrow$value)
 
-# Height: keep only complete cases
-height_final <- height_narrow[!is.na(height_narrow$value) & height_narrow$value != ".", ]
+# Filter to keep rows with non-missing value *and* age
+bmi_final <- bmi_narrow[!is.na(bmi_narrow$value) & !is.na(bmi_narrow$age), ]
+height_final <- height_narrow[!is.na(height_narrow$value) & !is.na(height_narrow$age), ]
 
 # ----------------------------- ORDERING ----------------------------------
 
-# Order by FID, IID, and age
-bmi_final <- bmi_final[order(bmi_final$FID, bmi_final$IID, bmi_final$age), ]
-height_final <- height_final[order(height_final$FID, height_final$IID, height_final$age), ]
+bmi_final <- bmi_final[, c("FID", "IID", "value", "age")]
+height_final <- height_final[, c("FID", "IID", "value", "age")]
 
 # ----------------------------- EXPORT -----------------------------
 
