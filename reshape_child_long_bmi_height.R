@@ -13,10 +13,10 @@ input_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/
 
 # Final output
 output_bmi_final <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/bmi.txt"               # complete case only
-output_height_final <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/height.txt"         # allows missing
+output_height_final <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/height.txt"        
 
 # Full long-format outputs (all columns)
-output_bmi_full <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/bmi_8_long.txt"
+output_bmi_full <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/bmi_8_long.txt"     # allows missing
 output_height_full <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/height_8_long.txt"
 
 # ----------------------------- READ DATA -----------------------------
