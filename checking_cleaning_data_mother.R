@@ -156,3 +156,93 @@ for (tp in names(timepoints)) {
   write.table(temp_complete, paste0("/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_", tp, "_complete.txt"), sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
   write.table(temp_partial,  paste0("/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_", tp, "_partial.txt"),  sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 }
+
+# ============================= Fathers (age required; 45f BMI uses hf height) =============================
+
+father_id_col <- "father_sentrix_id"
+if (!father_id_col %in% names(parent)) stop("Missing column: father_sentrix_id")
+
+# Timepoints with age available
+dad_timepoints <- list(
+  "hf" = list(height = "height_hf",      weight = "weight_hf",      age = "age_answering_q_hf",  height_proxy = NA_character_),
+  "45f"= list(height = NA_character_,     weight = "weight_now_45f", age = "age_answering_q_45f", height_proxy = "height_hf")  # use hf height
+)
+
+make_and_write_dad_tp <- function(tp, spec, df_parent) {
+  # Require age column
+  if (is.na(spec$age) || !(spec$age %in% names(df_parent))) {
+    message("Skipping ", tp, " — age column missing."); return(invisible(NULL))
+  }
+
+  a <- clean_numeric(df_parent[[spec$age]])
+  # Height: direct if present, else proxy (for 45f -> height_hf)
+  has_height_col   <- !is.na(spec$height)      && (spec$height      %in% names(df_parent))
+  has_height_proxy <- !is.na(spec$height_proxy) && (spec$height_proxy %in% names(df_parent))
+
+  h <- if (has_height_col) {
+    convert_height(df_parent[[spec$height]])
+  } else if (has_height_proxy) {
+    convert_height(df_parent[[spec$height_proxy]])
+  } else {
+    NA_real_
+  }
+  height_source <- if (has_height_col) spec$height else if (has_height_proxy) spec$height_proxy else NA_character_
+
+  # Weight
+  w <- if (!is.na(spec$weight) && spec$weight %in% names(df_parent)) clean_numeric(df_parent[[spec$weight]]) else NA_real_
+
+  # BMI (height is in meters from convert_height)
+  bmi <- ifelse(!is.na(h) & h > 0 & !is.na(w), w / (h^2), NA_real_)
+
+  # Build frame (keep rows with AGE only; completeness defined below)
+  tmp <- data.frame(
+    IID    = df_parent[[father_id_col]],
+    weight = w,
+    height = h,
+    bmi    = bmi,
+    age    = a,
+    stringsAsFactors = FALSE
+  )
+  names(tmp) <- c("IID",
+                  paste0("weight_", tp),
+                  paste0("height_", tp),
+                  paste0("bmi_", tp),
+                  paste0("age_", tp))
+  tmp$sex <- 1
+  names(tmp)[names(tmp) != "IID"] <- paste0("dad_", names(tmp)[names(tmp) != "IID"])
+
+  # Add a provenance flag for 45f height
+  if (tp == "45f") {
+    tmp$dad_height_45f_source <- ifelse(!is.na(height_source), height_source, ".")
+  }
+
+  # Enforce: must have AGE to be kept at all
+  tmp <- tmp[!is.na(tmp[[paste0("dad_age_", tp)]]), , drop = FALSE]
+
+  # Define complete rows:
+  #  - hf: require age + height + weight
+  #  - 45f: require age + weight + (proxy) height so BMI is computed
+  comp_vars <- c(paste0("dad_age_", tp), paste0("dad_weight_", tp))
+  if (tp %in% c("hf","45f")) comp_vars <- c(comp_vars, paste0("dad_height_", tp))
+
+  tmp_complete <- tmp[complete.cases(tmp[, comp_vars, drop = FALSE]), ]
+  tmp_partial  <- tmp[!is.na(tmp$IID), ]
+  tmp_partial[is.na(tmp_partial)] <- "."
+
+  out_base <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation"
+  write.table(tmp_complete, file.path(out_base, paste0("father_anthro_", tp, "_complete.txt")),
+              sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+  write.table(tmp_partial,  file.path(out_base, paste0("father_anthro_", tp, "_partial.txt")),
+              sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+
+  # quick console QC
+  cat("\nFather ", tp, " — kept (age present): ", nrow(tmp),
+      " | complete: ", nrow(tmp_complete),
+      if (tp == "45f") paste0(" | height source used: ", unique(na.omit(tmp$dad_height_45f_source))), "\n", sep = "")
+}
+
+# Run
+for (tp in names(dad_timepoints)) {
+  make_and_write_dad_tp(tp, dad_timepoints[[tp]], parent)
+}
+                                  
