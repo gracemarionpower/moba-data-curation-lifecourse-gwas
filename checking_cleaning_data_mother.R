@@ -12,8 +12,8 @@
 # ----------------------------- SETUP ----------------------------------
 
 # Load data
-parent_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/parent.gz"
-parent <- read.delim(gzfile(parent_file, "rt"), stringsAsFactors = FALSE)
+parent_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-09-04_HDGB_compatible/parent.gz"
+parent <- read.delim(parent_file, stringsAsFactors = FALSE, check.names = FALSE, quote = "", comment.char = "")
 
 # ----------------------------- FUNCTIONS -------------------------------
 
@@ -68,8 +68,8 @@ timepoints <- list(
   "3y"   = list(weight = "mother_weight_3y", height = "mother_height_3y", age_offset = 3 + 0.75),
   "5y"   = list(weight = "mother_weight_5y", height = "mother_height_5y", age_offset = 5 + 0.75),
   "8y"   = list(weight = "mother_weight_8y", height = "mother_height_8y", age_offset = 8 + 0.75),
-  "14y" = list(weight = "mother_weight_14m", height = "mother_height_14m", age_offset = 14 + 0.75),  # Note: "14m" interpreted as 14 years
-  "1.5y" = list(weight = "mother_weight_18m", height = "mother_height_3y", age_offset = 1.5 + 0.75)      # 1.5 years (18 months) with 3y height
+  "14y"  = list(weight = "weight_mother_14m", height = "height_mother_14m", age_offset = 14 + 0.75),  # Note: "14m" interpreted as 14 years
+  "1.5y" = list(weight = "mother_weight_18m", height = "mother_height_3y", age_offset = 1.5 + 0.75)   # 1.5 years (18 months) with 3y height
 )
 
 all_vars <- unique(c(core_vars, prepreg_vars, unlist(lapply(timepoints, function(x) c(x$weight, x$height)))))
@@ -122,7 +122,7 @@ write.table(prepreg_complete, "/home/grace.power/work/gpower/data/lifecourse_gwa
 write.table(prepreg_partial, "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_prepreg_partial.txt", sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 
 cat("\nSummary of complete-case dataset (Prepregnancy):\n")
-print(summarize_dataframe(prepreg_complete, c("mum_weight_prepreg", "mum_height_prepreg", "mum_bmi_prepreg", "mum_age_prepreg")), row.names = FALSE)
+print(summarise_dataframe(prepreg_complete, c("mum_weight_prepreg", "mum_height_prepreg", "mum_bmi_prepreg", "mum_age_prepreg")), row.names = FALSE)
 
 # ----------------------------- POSTNATAL TIMEPOINT DATA -------------------------------
 
