@@ -9,9 +9,8 @@
 
 # Inputs
 cleaned_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_anthro_all_timepoints_cleaned-adol.txt"
-psam_file    <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2024.12.03/moba_genotypes_2024.12.03_common.psam"
+psam_file    <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2025.01.30_beta/moba_genotypes_2025.01.30_common.psam"
 
-# Optional intermediate (kept minimal)
 merged_out   <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_adol_13_14_fid.txt"
 
 # Final long outputs
@@ -110,7 +109,7 @@ height_long <- height_long[!is.na(height_long$value) & !is.na(height_long$age), 
 
 # ----------------------------- ORDERING & SAVE ------------------------
 
-# Save a compact, merged snapshot too (optional)
+# Save a compact, merged snapshot
 merged_snapshot <- child[, c("FID","IID","sex",
                              "age_13y","height_13y","weight_13y","bmi_13y",
                              "age_14y","height_14y","weight_14y","bmi_14y")]
@@ -120,9 +119,4 @@ write.table(merged_snapshot, file = merged_out, sep = "\t", row.names = FALSE, q
 write.table(bmi_long,    file = output_bmi_long,    sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 write.table(height_long, file = output_height_long, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 
-# --------------------------------------------------------------------------------------
-# Outputs:
-#  - bmi_13_14_long.txt:    columns = FID, IID, sex, timepoint (13y/14y), age, value (BMI)
-#  - height_13_14_long.txt: columns = FID, IID, sex, timepoint (13y/14y), age, value (height in cm)
-#  - child_adol_13_14_fid.txt: compact wide snapshot incl. derived BMI (for QC)
-# --------------------------------------------------------------------------------------
+
