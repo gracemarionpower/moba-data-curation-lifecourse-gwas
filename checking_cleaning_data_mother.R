@@ -1,8 +1,8 @@
 # --------------------------------------------------------------------------------------
-# Script Name : checking_cleaning_data_mother.R
+# Script Name : checking_cleaning_data_parents.R
 # Purpose     : Clean maternal data and generate timepoint-specific datasets
 # Date created: 13-05-2025
-# Last updated: 15-05-2025
+# Last updated: 02-10-2025
 # Author      : Grace M. Power
 # Collaborators: Marc Vaudel and Stefan Johansson, University of Bergen
 # --------------------------------------------------------------------------------------
@@ -12,7 +12,7 @@
 # ----------------------------- SETUP ----------------------------------
 
 # Load data
-parent_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-09-04_HDGB_compatible/parent.gz"
+parent_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/parent.gz"
 parent <- read.delim(parent_file, stringsAsFactors = FALSE, check.names = FALSE, quote = "", comment.char = "")
 
 # ----------------------------- FUNCTIONS -------------------------------
@@ -118,8 +118,8 @@ prepreg_partial$sex <- 2
 colnames(prepreg_complete)[colnames(prepreg_complete) != "IID"] <- paste0("mum_", colnames(prepreg_complete)[colnames(prepreg_complete) != "IID"])
 colnames(prepreg_partial)[colnames(prepreg_partial) != "IID"] <- paste0("mum_", colnames(prepreg_partial)[colnames(prepreg_partial) != "IID"])
 
-write.table(prepreg_complete, "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_prepreg_complete.txt", sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
-write.table(prepreg_partial, "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_prepreg_partial.txt", sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+write.table(prepreg_complete, "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/parents/mother_anthro_prepreg_complete.txt", sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+write.table(prepreg_partial, "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/parents/mother_anthro_prepreg_partial.txt", sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 
 cat("\nSummary of complete-case dataset (Prepregnancy):\n")
 print(summarise_dataframe(prepreg_complete, c("mum_weight_prepreg", "mum_height_prepreg", "mum_bmi_prepreg", "mum_age_prepreg")), row.names = FALSE)
@@ -153,8 +153,8 @@ for (tp in names(timepoints)) {
   temp_partial  <- temp[!is.na(temp[[1]]), ]
   temp_partial[is.na(temp_partial)] <- "."
 
-  write.table(temp_complete, paste0("/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_", tp, "_complete.txt"), sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
-  write.table(temp_partial,  paste0("/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_", tp, "_partial.txt"),  sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+  write.table(temp_complete, paste0("/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/parents/mother_anthro_", tp, "_complete.txt"), sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+  write.table(temp_partial,  paste0("/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/parents/mother_anthro_", tp, "_partial.txt"),  sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
 }
 
 # ============================= Fathers (age required; 45f BMI uses hf height) =============================
