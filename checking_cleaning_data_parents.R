@@ -245,4 +245,89 @@ make_and_write_dad_tp <- function(tp, spec, df_parent) {
 for (tp in names(dad_timepoints)) {
   make_and_write_dad_tp(tp, dad_timepoints[[tp]], parent)
 }
-                                  
+
+
+# ---- paths ----
+root <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation"
+parents_dir <- file.path(root, "parents")
+static_path <- file.path(root, "static_covariates.txt")
+
+# ---- read IID -> FID from static covariates ----
+static <- read.table(static_path, header = TRUE, sep = "\t", quote = "", comment.char = "",
+                     stringsAsFactors = FALSE, check.names = FALSE)
+stopifnot(all(c("FID","IID") %in% names(static)))
+iid2fid <- setNames(static$FID, static$IID)
+
+# ---- helper: build long file for a given measure ("bmi" or "height") ----
+make_long <- function(measure = c("bmi","height")) {
+  measure <- match.arg(measure)
+  files <- list.files(parents_dir, pattern = "_complete\\.txt$", full.names = TRUE)
+  out <- list(); k <- 0L
+
+  for (f in files) {
+    df <- tryCatch(read.table(f, header = TRUE, sep = "\t", quote = "", comment.char = "",
+                              stringsAsFactors = FALSE, check.names = FALSE),
+                   error = function(e) NULL)
+    if (is.null(df) || !("IID" %in% names(df))) next
+
+    # columns like mum_bmi_8y / dad_bmi_hf and mum_age_8y / dad_age_hf
+    mcols <- grep(paste0("(^|_)",(measure),"_"), names(df), value = TRUE)
+    acols <- grep("(^|_)age_",                       names(df), value = TRUE)
+    if (!length(mcols) || !length(acols)) next
+
+    # timepoint suffixes after "<prefix>_<measure>_" and "<prefix>_age_"
+    tp_measure <- sub(paste0(".*?_?",measure,"_"), "", mcols)
+    tp_age     <- sub(".*?_?age_",                    "", acols)
+    tps <- intersect(tp_measure, tp_age)
+    if (!length(tps)) next
+
+    for (tp in tps) {
+      mc <- mcols[tp_measure == tp][1]
+      ac <- acols[tp_age     == tp][1]
+
+      tmp <- df[, c("IID", mc, ac)]
+      names(tmp) <- c("IID", "value", "age")
+
+      # convert "."/"" to NA then to numeric
+      tmp$value[tmp$value %in% c(".", "")] <- NA
+      tmp$age[tmp$age %in% c(".", "")] <- NA
+      suppressWarnings({
+        tmp$value <- as.numeric(tmp$value)
+        tmp$age   <- as.numeric(tmp$age)
+      })
+
+      tmp <- tmp[!is.na(tmp$value) & !is.na(tmp$age), , drop = FALSE]
+      if (!nrow(tmp)) next
+
+      # attach FID from static map; drop if no FID
+      tmp$FID <- iid2fid[tmp$IID]
+      tmp <- tmp[!is.na(tmp$FID), c("FID","IID","value","age")]
+
+      if (nrow(tmp)) { k <- k + 1L; out[[k]] <- tmp }
+    }
+  }
+
+  if (!length(out)) {
+    return(data.frame(FID=character(), IID=character(), value=double(), age=double(),
+                      check.names = FALSE))
+  }
+  ans <- do.call(rbind, out)
+  ans <- ans[order(ans$FID, ans$IID, ans$age, ans$value), ]
+  unique(ans)
+}
+
+# ---- build and write ----
+bmi_long    <- make_long("bmi")
+height_long <- make_long("height")
+
+write.table(bmi_long,
+            file = file.path(root, "bmi.txt"),
+            sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+write.table(height_long,
+            file = file.path(root, "height.txt"),
+            sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+
+cat("wrote:\n",
+    file.path(root, "bmi.txt"),    " (", nrow(bmi_long),    " rows)\n",
+    file.path(root, "height.txt"), " (", nrow(height_long), " rows)\n", sep = "")
+
