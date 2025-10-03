@@ -14,7 +14,7 @@ WIP!
 # Setup file paths
 
 input_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/mother_anthro_prepreg_complete.txt"
-psam_file <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2024.12.03/moba_genotypes_2024.12.03_common.psam"
+psam_file <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2025.01.30_beta/moba_genotypes_2025.01.30_common.psam"
 
 output_height <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/height.txt"
 output_bmi <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/bmi.txt"
