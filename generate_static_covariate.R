@@ -1,18 +1,18 @@
 # In bash, run: R
 
 # --------------------------------------------------------------------------------------
-# Script Name: generate_static_covariate.R
-# Purpose      : To generate a static_covariate.txt file for the Lifecourse GWAS pipeline
-# Date created : 13-05-2025
-# Last updated : 13-05-2025
-# Author       : Grace M. Power
+# Script Name : generate_static_covariates.R
+# Purpose     : To generate a static_covariates.txt file for the Lifecourse GWAS pipeline
+# Date created: 13-05-2025
+# Last updated: 06-10-2025
+# Author      : Grace M. Power
 # Collaborators: Marc Vaudel and Stefan Johansson, University of Bergen
 # --------------------------------------------------------------------------------------
 
 # Define input file paths
-input_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-09-04_HDGB_compatible/mfr.gz"
-psam_file  <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2025.01.30_beta/moba_genotypes_2025.01.30_common.psam"
-output_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/static_covariate.txt"
+input_file  <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-09-04_HDGB_compatible/mfr.gz"
+psam_file   <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2025.01.30_beta/moba_genotypes_2025.01.30_common.psam"
+output_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/static_covariates.txt"
 
 # Read compressed mfr file
 con <- gzfile(input_file, "rt")
@@ -25,13 +25,12 @@ colnames(psam)[1] <- "FID"  # Rename '#FID' to 'FID'
 
 # Create list of rows from mfr
 rows <- list()
-
 for (i in 1:nrow(mfr)) {
-  child_id  <- mfr$child_sentrix_id[i]
-  mother_id <- mfr$mother_sentrix_id[i]
-  father_id <- mfr$father_sentrix_id[i]
-  child_sex <- mfr$sex[i]
-  child_yob <- mfr$birth_year[i]
+  child_id   <- mfr$child_sentrix_id[i]
+  mother_id  <- mfr$mother_sentrix_id[i]
+  father_id  <- mfr$father_sentrix_id[i]
+  child_sex  <- mfr$sex[i]
+  child_yob  <- mfr$birth_year[i]
   mother_yob <- mfr$mother_birth_year[i]
   father_yob <- mfr$father_birth_year[i]
 
@@ -60,7 +59,16 @@ static_covariate <- merge(psam[, c("FID", "IID")], static_covariate, by = "IID")
 # Reorder columns
 static_covariate <- static_covariate[, c("FID", "IID", "sex", "yob")]
 
-write.table(static_covariate, file = output_file, sep = "\t", row.names = FALSE, quote = FALSE)
+# Remove duplicates
+static_covariate <- unique(static_covariate)
+
+# Write to file
+write.table(static_covariate,
+            file = output_file,
+            sep = "\t", row.names = FALSE, quote = FALSE)
+
+cat("✅ static_covariates.txt written with", nrow(static_covariate), "unique rows\n")
+
 
 
 
