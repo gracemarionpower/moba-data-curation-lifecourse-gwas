@@ -10,8 +10,8 @@
 # --------------------------------------------------------------------------------------
 
 # Define input file paths
-input_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-05-07_Mikko/mfr.gz"
-psam_file  <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2024.12.03/moba_genotypes_2024.12.03_common.psam"
+input_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-09-04_HDGB_compatible/mfr.gz"
+psam_file  <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2025.01.30_beta/moba_genotypes_2025.01.30_common.psam"
 output_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/static_covariate.txt"
 
 # Read compressed mfr file
