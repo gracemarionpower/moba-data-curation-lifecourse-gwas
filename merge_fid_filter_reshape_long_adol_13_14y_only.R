@@ -1,122 +1,123 @@
 # --------------------------------------------------------------------------------------
-# Script Name : merge_and_reshape_child_13_14.R
-# Purpose     : Merge FID, derive BMI from height/weight, and output long BMI/height (13y & 14y only)
-# Date created: 25-09-2025
+# Script Name : clean_merge_long_child_13_14_HDGB.R
+# Purpose     : (1) Clean raw phenotypes to HDGB-compatible format
+#               (2) Merge with FID from .psam
+#               (3) Output both snapshot and long-format BMI/height (13y & 14c)
+# Date created: 17-10-2025
 # Author      : Grace Power
 # --------------------------------------------------------------------------------------
 
-# ----------------------------- SETUP ----------------------------------
+# Packages
+if (!requireNamespace("data.table", quietly = TRUE)) install.packages("data.table")
+if (!requireNamespace("R.utils", quietly = TRUE)) install.packages("R.utils")
+library(data.table)
 
-# Inputs
-cleaned_file <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_anthro_all_timepoints_cleaned-adol.txt"
-psam_file    <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2025.01.30_beta/moba_genotypes_2025.01.30_common.psam"
+# ----------------------------- PATHS ---------------------------------
 
-merged_out   <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_adol_13_14_fid.txt"
+# Input raw phenotype file
+raw_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-09-04_HDGB_compatible/child_anthropometrics_raw.gz"
 
-# Final long outputs
-output_bmi_long    <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/bmi_13_14_long.txt"
-output_height_long <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/height_13_14_long.txt"
+# PSAM with FID/IID
+psam_file <- "/home/grace.power/archive/moba/geno/HDGB-MoBaGenetics/2025.01.30_beta/moba_genotypes_2025.01.30_common.psam"
 
-# ----------------------------- READ FILES -----------------------------
+# Outputs
+cleaned_file        <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_anthro_all_timepoints_cleaned-adol-HDGB_compatible.txt"
+merged_out          <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/child_adol_13_14_fid.txt"
+output_bmi_long     <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/bmi_13_14_long.txt"
+output_height_long  <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/child/height_13_14_long.txt"
 
-child <- read.delim(cleaned_file, stringsAsFactors = FALSE, check.names = FALSE)
+dir.create(dirname(cleaned_file), recursive = TRUE, showWarnings = FALSE)
 
-psam  <- read.table(psam_file, header = TRUE, stringsAsFactors = FALSE, comment.char = "")
-colnames(psam)[1] <- "FID"  # first column is family ID in .psam
-# Keep only FID/IID for merge
-psam   <- psam[, c("FID", "IID")]
+# ----------------------------- STEP 1: CLEAN RAW ---------------------
 
-# ----------------------------- MERGE FID -----------------------------
-
-# Ensure IID exists in both
-if (!"IID" %in% names(child)) stop("IID column not found in child data.")
-child <- merge(psam, child, by = "IID")  # inner join keeps only IIDs present in .psam
-
-# ----------------------------- KEEP 13y & 14y -----------------------------
-
-keep_cols <- c(
-  "FID", "IID", "sex",
-  "weight_13y", "height_13y", "age_13y",
-  "weight_14y", "height_14y", "age_14y"
-)
-keep_cols <- keep_cols[keep_cols %in% names(child)]
-child <- child[, keep_cols]
-
-# Coerce numeric columns (gracefully)
-num_cols <- intersect(c("weight_13y","height_13y","age_13y","weight_14y","height_14y","age_14y"), names(child))
-for (cc in num_cols) child[[cc]] <- suppressWarnings(as.numeric(child[[cc]]))
-
-# ----------------------------- DERIVE BMI (robust units) --------------
-
-# Helper to standardize height to meters when computing BMI.
-# If a height value > 3, treat as cm and divide by 100.
-to_meters <- function(h) ifelse(is.na(h), NA_real_, ifelse(h > 3, h/100, h))
-
-h13_m <- to_meters(child$height_13y)
-h14_m <- to_meters(child$height_14y)
-
-child$bmi_13y <- ifelse(!is.na(child$weight_13y) & !is.na(h13_m),
-                        child$weight_13y / (h13_m^2), NA_real_)
-child$bmi_14y <- ifelse(!is.na(child$weight_14y) & !is.na(h14_m),
-                        child$weight_14y / (h14_m^2), NA_real_)
-
-# ----------------------------- LONG FORMAT: BMI -----------------------
-
-bmi_long <- rbind(
-  data.frame(
-    FID = child$FID, IID = child$IID, sex = child$sex,
-    timepoint = "13y",
-    age = child$age_13y,
-    value = child$bmi_13y,
-    stringsAsFactors = FALSE
-  ),
-  data.frame(
-    FID = child$FID, IID = child$IID, sex = child$sex,
-    timepoint = "14y",
-    age = child$age_14y,
-    value = child$bmi_14y,
-    stringsAsFactors = FALSE
-  )
+# Columns to keep from raw
+cols_to_keep <- c(
+  "child_sentrix_id",
+  "height_13", "weight_13", "age_answering_q_13",
+  "height_14c", "weight_14c", "age_answering_q_14c"
 )
 
-# Remove rows with missing BMI or age
-bmi_long <- bmi_long[!is.na(bmi_long$value) & !is.na(bmi_long$age), ]
+# Read only needed cols
+dt <- fread(raw_file, select = cols_to_keep)
 
-# ----------------------------- LONG FORMAT: HEIGHT (in cm) -----------
+# Helper to extract numbers only
+num_only <- function(x) as.numeric(gsub("[^0-9.]+", "", x))
 
-# Convert original heights to centimeters in output
-to_cm <- function(h) ifelse(is.na(h), NA_real_, ifelse(h > 3, h, h*100))
+# Clean height/weight units
+dt[, height_13_cm := num_only(height_13)]
+dt[, weight_13_kg := num_only(weight_13)]
+dt[, height_14c_cm := num_only(height_14c)]
+dt[, weight_14c_kg := num_only(weight_14c)]
 
-height_long <- rbind(
-  data.frame(
-    FID = child$FID, IID = child$IID, sex = child$sex,
-    timepoint = "13y",
-    age = child$age_13y,
-    value = to_cm(child$height_13y),
-    stringsAsFactors = FALSE
-  ),
-  data.frame(
-    FID = child$FID, IID = child$IID, sex = child$sex,
-    timepoint = "14y",
-    age = child$age_14y,
-    value = to_cm(child$height_14y),
-    stringsAsFactors = FALSE
-  )
+# Compute BMI
+dt[, bmi_13  := ifelse(!is.na(height_13_cm)  & height_13_cm  > 0,
+                       weight_13_kg  / ((height_13_cm/100)^2), NA_real_)]
+dt[, bmi_14c := ifelse(!is.na(height_14c_cm) & height_14c_cm > 0,
+                       weight_14c_kg / ((height_14c_cm/100)^2), NA_real_)]
+
+# Age conversions
+dt[, age_answering_q_13_years  := as.numeric(age_answering_q_13) / 12]            # months -> years
+dt[, age_answering_q_14c_months := as.numeric(age_answering_q_14c) / 365.25 * 12] # days -> months
+
+# Final cleaned dataset
+cleaned <- dt[, .(
+  child_sentrix_id,
+  height_13_cm,  weight_13_kg,  bmi_13,  age_answering_q_13_years,
+  height_14c_cm, weight_14c_kg, bmi_14c, age_answering_q_14c_months
+)]
+
+# Save cleaned file (NA as ".")
+fwrite(cleaned, cleaned_file, sep = "\t", na = ".", quote = FALSE)
+
+# ----------------------------- STEP 2: MERGE FID ---------------------
+
+# Reload cleaned file to be sure "." are NA internally
+child <- fread(cleaned_file, na.strings = ".", sep = "\t", check.names = FALSE)
+
+# Read PSAM FID/IID
+psam <- fread(psam_file, header = TRUE)
+setnames(psam, old = names(psam)[1:2], new = c("FID","IID"))
+psam <- psam[, .(FID, IID)]
+
+# Add IID from child_sentrix_id
+child[, IID := as.character(child_sentrix_id)]
+
+# Merge
+child <- merge(psam, child, by = "IID", all = FALSE)
+
+# ----------------------------- STEP 3: SNAPSHOT ----------------------
+
+snapshot_cols <- intersect(
+  c("FID","IID",
+    "age_answering_q_13_years","height_13_cm","weight_13_kg","bmi_13",
+    "age_answering_q_14c_months","height_14c_cm","weight_14c_kg","bmi_14c"),
+  names(child)
 )
+merged_snapshot <- child[, ..snapshot_cols]
+fwrite(merged_snapshot, merged_out, sep = "\t", na = ".", quote = FALSE)
 
-# Remove rows with missing height or age
-height_long <- height_long[!is.na(height_long$value) & !is.na(height_long$age), ]
+# ----------------------------- STEP 4: LONG FILES --------------------
 
-# ----------------------------- ORDERING & SAVE ------------------------
+# BMI long
+bmi_13 <- child[, .(FID, IID, value = bmi_13, age = age_answering_q_13_years)]
+bmi_14 <- child[, .(FID, IID, value = bmi_14c, age = age_answering_q_14c_months)]
+bmi_long <- rbind(bmi_13, bmi_14, use.names = TRUE)
+bmi_long <- bmi_long[!is.na(value) & !is.na(age)]
+fwrite(bmi_long, output_bmi_long, sep = "\t", na = ".", quote = FALSE)
 
-# Save a compact, merged snapshot
-merged_snapshot <- child[, c("FID","IID","sex",
-                             "age_13y","height_13y","weight_13y","bmi_13y",
-                             "age_14y","height_14y","weight_14y","bmi_14y")]
-write.table(merged_snapshot, file = merged_out, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+# Height long
+height_13 <- child[, .(FID, IID, value = height_13_cm, age = age_answering_q_13_years)]
+height_14 <- child[, .(FID, IID, value = height_14c_cm, age = age_answering_q_14c_months)]
+height_long <- rbind(height_13, height_14, use.names = TRUE)
+height_long <- height_long[!is.na(value) & !is.na(age)]
+fwrite(height_long, output_height_long, sep = "\t", na = ".", quote = FALSE)
 
-# Final long files
-write.table(bmi_long,    file = output_bmi_long,    sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
-write.table(height_long, file = output_height_long, sep = "\t", row.names = FALSE, quote = FALSE, na = ".")
+# ----------------------------- DONE ---------------------------------
+
+cat("Pipeline complete.\n",
+    "- Cleaned file:", cleaned_file, "\n",
+    "- Snapshot with FID/IID:", merged_out, "\n",
+    "- BMI long:", output_bmi_long, "\n",
+    "- Height long:", output_height_long, "\n")
 
 
