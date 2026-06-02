@@ -8,10 +8,7 @@
 # --------------------------------------------------------------------------------------
 
 # Packages
-if (!requireNamespace("data.table", quietly = TRUE)) install.packages("data.table")
-if (!requireNamespace("R.utils", quietly = TRUE)) install.packages("R.utils")
 library(data.table)
- library(R.utils)
 
 # ----------------------------- PATHS ---------------------------------
 
@@ -53,7 +50,6 @@ dt[, age_14c_years := as.numeric(age_answering_q_14c) / 365.25]
 dt[, bmi_13 := weight_13_kg / ((height_13_cm / 100)^2)]
 dt[, bmi_14c := weight_14c_kg / ((height_14c_cm / 100)^2)]
 
-# Basic sanity filters
 dt[height_13_cm < 100 | height_13_cm > 220, height_13_cm := NA_real_]
 dt[height_14c_cm < 100 | height_14c_cm > 220, height_14c_cm := NA_real_]
 
