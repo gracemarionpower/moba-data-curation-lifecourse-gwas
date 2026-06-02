@@ -11,6 +11,7 @@
 if (!requireNamespace("data.table", quietly = TRUE)) install.packages("data.table")
 if (!requireNamespace("R.utils", quietly = TRUE)) install.packages("R.utils")
 library(data.table)
+ library(R.utils)
 
 # ----------------------------- PATHS ---------------------------------
 
