@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------------------
-# Script Name : clean_merge_long_child_13_14_PsychGen.R
-# Purpose     : (1) Clean raw phenotypes to PsychGen-compatible format
-#               (2) Merge with FID from PsychGen .fam
+# Script Name : clean_merge_long_child_13_14_HDGB_under8FID.R
+# Purpose     : (1) Clean raw adolescent phenotypes from HDGB-compatible release
+#               (2) Merge with FID/IID from the trusted under-8 genotype backbone
 #               (3) Output both snapshot and long-format BMI/height (13y & 14c)
 # Date created: 02-06-2026
 # Author      : Grace Power
@@ -12,14 +12,14 @@ library(data.table)
 
 # ----------------------------- PATHS ---------------------------------
 
-raw_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_25-06-26_PsychGen_compatible/child_anthropometrics_raw.gz"
+raw_file <- "/home/grace.power/archive/moba/pheno/v12/pheno_anthropometrics_26-03-23_hdgb/child_anthropometrics_raw.gz"
 
-fam_file <- "/home/grace.power/archive/moba/geno/MobaPsychgenReleaseMarch23/MoBaPsychGen_v1/MoBaPsychGen_v1-ec-eur-batch-basic-qc.fam"
+fid_file <- "/home/grace.power/work/gpower/analysis/LifecourseGWAS_pipeline_run_under8s/genotype_input_dir/scratch/tophits.fam"
 
-out_dir <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/adol/psychgen_link"
+out_dir <- "/home/grace.power/work/gpower/data/lifecourse_gwas_data_curation/adol/hdgb_under8FID"
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-cleaned_file       <- file.path(out_dir, "child_anthro_all_timepoints_cleaned-adol-PsychGen_compatible.txt")
+cleaned_file       <- file.path(out_dir, "child_anthro_all_timepoints_cleaned-adol-HDGB_under8FID.txt")
 merged_out         <- file.path(out_dir, "child_adol_13_14_fid.txt")
 output_bmi_long    <- file.path(out_dir, "bmi.txt")
 output_height_long <- file.path(out_dir, "height.txt")
@@ -36,6 +36,7 @@ dt <- fread(raw_file, select = cols_to_keep)
 
 num_only <- function(x) {
   x <- gsub(",", ".", x)
+  x[x %in% c("", ".", "NA")] <- NA
   suppressWarnings(as.numeric(gsub("[^0-9.]+", "", x)))
 }
 
@@ -72,17 +73,16 @@ fwrite(cleaned, cleaned_file, sep = "\t", na = ".", quote = FALSE)
 
 # ----------------------------- STEP 2: MERGE FID ---------------------
 
-child <- fread(cleaned_file, na.strings = ".", sep = "\t", check.names = FALSE)
-
-fam <- fread(fam_file, header = FALSE)
-setnames(fam, c("FID", "IID", "father", "mother", "sex", "phenotype"))
-fam <- fam[, .(FID, IID)]
-
+child <- copy(cleaned)
 child[, IID := as.character(child_sentrix_id)]
 
-child <- merge(fam, child, by = "IID", all = FALSE)
+fidmap <- fread(fid_file, header = FALSE)
+setnames(fidmap, c("FID", "IID", "father", "mother", "sex", "phenotype"))
+fidmap <- fidmap[, .(FID, IID)]
 
-cat("Rows after PsychGen .fam merge:", nrow(child), "\n")
+child <- merge(fidmap, child, by = "IID", all = FALSE)
+
+cat("Rows after under8 FID/IID merge:", nrow(child), "\n")
 cat("Unique merged IIDs:", uniqueN(child$IID), "\n")
 cat("Duplicated merged IIDs:", sum(duplicated(child$IID)), "\n")
 
@@ -98,25 +98,29 @@ fwrite(snapshot, merged_out, sep = "\t", na = ".", quote = FALSE)
 
 # ----------------------------- STEP 4: LONG FILES --------------------
 
-bmi_13 <- child[, .(FID, IID, value = bmi_13, age = age_13_years)]
-bmi_14 <- child[, .(FID, IID, value = bmi_14c, age = age_14c_years)]
-
-bmi_long <- rbind(bmi_13, bmi_14, use.names = TRUE)
+bmi_long <- rbind(
+  child[, .(FID, IID, value = bmi_13, age = age_13_years)],
+  child[, .(FID, IID, value = bmi_14c, age = age_14c_years)],
+  use.names = TRUE
+)
 bmi_long <- bmi_long[!is.na(value) & !is.na(age)]
 
-fwrite(bmi_long, output_bmi_long, sep = "\t", na = ".", quote = FALSE)
-
-height_13 <- child[, .(FID, IID, value = height_13_cm, age = age_13_years)]
-height_14 <- child[, .(FID, IID, value = height_14c_cm, age = age_14c_years)]
-
-height_long <- rbind(height_13, height_14, use.names = TRUE)
+height_long <- rbind(
+  child[, .(FID, IID, value = height_13_cm, age = age_13_years)],
+  child[, .(FID, IID, value = height_14c_cm, age = age_14c_years)],
+  use.names = TRUE
+)
 height_long <- height_long[!is.na(value) & !is.na(age)]
 
+fwrite(bmi_long, output_bmi_long, sep = "\t", na = ".", quote = FALSE)
 fwrite(height_long, output_height_long, sep = "\t", na = ".", quote = FALSE)
 
-# ----------------------------- DONE ---------------------------------
+# ----------------------------- QUICK CHECKS --------------------------
 
-cat("Pipeline complete.\n",
+cat("\nHeight unique IIDs:", uniqueN(height_long$IID), "\n")
+cat("BMI unique IIDs:", uniqueN(bmi_long$IID), "\n")
+
+cat("\nPipeline complete.\n",
     "- Cleaned file:", cleaned_file, "\n",
     "- Snapshot with FID/IID:", merged_out, "\n",
     "- BMI long:", output_bmi_long, "\n",
